@@ -1,0 +1,20 @@
+
+Inicio
+Buscar el dispositivo para ver el video
+Si tengo una Laptop o PC
+Encender
+Poner contraseña
+Buscar el Navegador
+Darle click al navegador
+En la barra de búsqueda teclear YouTube
+Dar click al enlace de YouTube
+Buscar el video
+Reproducirlo
+Sino, tomar el celular o tablet
+Desbloquear el dispositivo
+Buscar la Aplicación
+Entrar a YouTube
+Buscar el video
+Seleccionar el video
+Reproducirlo
+Fin

@@ -1,0 +1,44 @@
+Inicio
+Despertar
+Levantarme de mi cama
+Lavar mis dientes
+Si es Lunes o Martes o Miércoles o Jueves o Viernes
+Encender la computadora del trabajo
+Poner la contraseña
+Entrar en Microsoft Teams
+Saludar a mi equipo
+Abrir Outlook
+Revisar correos
+Si tengo pendientes
+Terminar pendientes
+Si no, continuar con el trabajo hasta mi hora de almuerzo
+Volver de mi almuerzo
+Mientras, aun tengo trabajo
+Trabajar hasta que termine mi horario laboral
+FinMientras
+Apagar la computadora
+Prepararme para ir al gym
+Buscar mis llaves
+Encender el carro
+Manejar hasta llegar al gym
+Apagar el carro
+Salir del carro
+Ir al área de locker
+Guardar mis pertenencias
+Empezar a hacer ejercicios
+Mientras no cumpla mi rutina 
+hago ejercicios hasta cumplir con la rutina
+FInMientras
+Volver a mi casa
+Bañarme
+Hacer cena
+Comer cena
+Encender mi laptop
+Empezar estudio
+Si tengo tarea
+Hacer la tarea hasta completarla
+Si no, leer la información y ver los videos
+Al terminar, apagar laptop
+Lavar mis dientes
+Ir a dormir
+Fin
