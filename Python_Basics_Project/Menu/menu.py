@@ -26,7 +26,7 @@ def menu():
         ))
         match option:
           case 1:
-            students_list = add_students()
+            students_list = add_students(students_list)
           case 2:
             if students_list:
                 print(grades_average(students_list))

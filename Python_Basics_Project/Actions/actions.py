@@ -1,14 +1,12 @@
 import re
 
-def add_students():
+def add_students(students):
     students_quantity = int(input("Enter the number of students: "))
     if students_quantity < 0:
         raise ValueError("The students quantity must be higher than 0.")
     
     if not isinstance(students_quantity, int):
         raise TypeError("The quantity must be a number.")
-
-    students = []
 
     for student in range(students_quantity):
         
@@ -99,8 +97,10 @@ def ask_for_grade(prompt):
 def is_valid_grade(grade):
     if not isinstance(grade, int):
         raise TypeError("The grade must be a number.")
-    if grade <= 0:
+    if grade < 0:
         raise ValueError("The grade must be higher than 0")
+    if grade > 100:
+       raise ValueError("The grade must not be higher than 100")
     return True
 
 
@@ -110,24 +110,27 @@ def print_students_info(students):
 
 
 def grades_average(students):
-    try:
-      students_grades_sum = 0
-      students_grades_average = 0
-      grades_quantity = 0
-      for student in students:
-          for grade in student["grades"].values():
-            students_grades_sum += grade
-            grades_quantity +=1
-    
-      students_grades_average = students_grades_sum / grades_quantity
+  results = []
+  group_average = 0
 
-      return students_grades_average
-    except KeyError as error:
-        print("Error: falta la clave en el diccionario: ", error)
-    except TypeError as error:
-        print("Error: tipo de dato inválido: ", error)
-    except ZeroDivisionError as error:
-        print("Error:", error)
+  for student in students:
+    try:
+      all_grades = list(student["grades"].values())
+      if not all_grades:
+        continue
+      average = sum(all_grades) / len(all_grades)
+      results.append(average)
+    except KeyError as e:
+      print(f"The key {e} in the student is missing: {student}")
+    except TypeError:
+      print(f"The grades must be numbers: {student}")
+
+  if not results:
+    raise ZeroDivisionError("There are no valid grades")
+
+  group_average = sum(results) / len(results)
+
+  return round(group_average, 2) 
 
 
 def get_top_3_students(students):
@@ -143,9 +146,9 @@ def get_top_3_students(students):
         "average": round(average, 2)
       })
     except KeyError as e:
-      print(f"Falta la clave {e} en el estudiante: {student}")
+      print(f"The key {e} in the student is missing: {student}")
     except TypeError:
-      print(f"Las notas deben ser números: {student}")
+      print(f"The grades must be numbers: {student}")
 
   return sorted(results, key=lambda x: x["average"], reverse=True)[:3]
 
@@ -188,7 +191,7 @@ def failed_students(students):
     for student in students:
       failed_subjects = {}
       for subject, grade in student["grades"].items():
-          if grade <= 60:
+          if grade < 60:
             failed_subjects[subject] = grade
       
       if len(failed_subjects) > 0:
