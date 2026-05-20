@@ -27,7 +27,7 @@ class Inventory:
     total = 0
     for product in self.products_list:
       total += product.price * product.quantity
-    print(total)
+    return total
 
 product_1 = Product("Mouse", 5000, 3)
 product_2 = Product("Keyboard", 8000, 2)
