@@ -1,19 +1,17 @@
-from abc import ABC, abstractmethod
-
-class BankAccount(ABC):
+class BankAccount():
   
   def __init__(self, balance):
     self.balance = balance
 
-  @abstractmethod
+
   def deposit(self, amount):
     self.balance +=amount
     return self.balance
-  @abstractmethod
+
+
   def withdraw(self, amount):
     self.balance -=amount
     return self.balance
-
 class SavingAccount(BankAccount):
 
   def __init__(self, balance, min_balance):
