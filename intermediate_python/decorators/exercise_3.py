@@ -19,20 +19,21 @@ class User():
  
 def check_user_age(func):
   def wrapper(user):
-    user
-    result = func(user)
-    if result < 18:
+    user_age = user.age
+    if user_age < 18:
       raise ValueError("You`re not an adult")
-    
+    result = func(user)
     return result
   return wrapper
     
 
 
 user = User(date(2015, 6, 15))
+user_2 = User((date(2000, 3, 25))) 
 
 @check_user_age
 def user_age(user):
   return user.age
 
+print(user_age(user_2))
 print(user_age(user))
