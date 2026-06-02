@@ -82,7 +82,6 @@ dequeue.print_dequeue_right()
 dequeue.pop_left()
 dequeue.pop_right()
 
-
 print("*****after poped elements*****")
 dequeue.print_dequeue_left()
 dequeue.print_dequeue_right()
