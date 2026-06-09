@@ -51,7 +51,3 @@ def get_prime_numbers(numbers_list):
         prime_number_list.append(number)
 
   return prime_number_list
-
-
-
-print(get_prime_numbers([4,4,4]))

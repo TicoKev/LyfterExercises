@@ -74,7 +74,7 @@ def test_returns_zero_if_the_string_passed_is_all_in_lower_case():
   assert result == 0
 
 
-def test_returns_the_number_of_upper_case_letters_correctly():
+def test_returns_the_number_of_lower_case_letters_correctly():
 
   input_test = "aspqdver"
 

@@ -1,4 +1,7 @@
 def bubble_sort(list_to_sort):
+  if not isinstance(list_to_sort, list):
+    raise TypeError("The argument must be of type list")
+  
   length = len(list_to_sort)
 
   while True:
