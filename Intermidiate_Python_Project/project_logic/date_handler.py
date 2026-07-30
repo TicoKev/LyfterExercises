@@ -1,16 +1,23 @@
-from datetime import datetime
+from datetime import datetime, date
 
-
-def format_date(transaction_date):
+def format_date(transaction_date: str) -> date | None:
   try:
-    date_info = datetime.strptime(transaction_date, "%d/%m/%Y")
-    return date_info
-  except ValueError:
+    transaction_date = transaction_date.strip()
+
+    try:
+        return datetime.strptime(transaction_date, "%d/%m/%Y").date()
+    except ValueError:
+        pass
+
+    try:
+        return datetime.strptime(transaction_date, "%Y-%m-%d").date()
+    except ValueError:
+        pass
+    return None
+  except Exception:
     return None
 
 
-def date_check(transaction_date):
-    current_date = datetime.today()
-    if transaction_date > current_date:
-      raise ValueError("The date must not be a future date")
-    return transaction_date
+def date_check(transaction_date: date) -> bool:
+  current_date = date.today()
+  return transaction_date <= current_date

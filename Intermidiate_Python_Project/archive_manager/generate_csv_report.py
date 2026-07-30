@@ -43,10 +43,11 @@ def export_all_transactions_report(filename, expenses, incomes):
     writer.writerow(["Date", "Title", "Amount", "Category", "Type"])
     for row in all_transactions_sorted:
       writer.writerow([row["date"], row["title"], row["amount"], row["category"], row["type"]])
-      writer.writerow([])
-      writer.writerow(["Totals:"])
-      writer.writerow([f"Income: {total_income}"])
-      writer.writerow([f"Expenses: {total_expenses}"])
-      writer.writerow([f"Net Balance: {net_balance}"])
+      
+    writer.writerow([])
+    writer.writerow(["Totals:"])
+    writer.writerow([f"Income: {total_income}"])
+    writer.writerow([f"Expenses: {total_expenses}"])
+    writer.writerow([f"Net Balance: {net_balance}"])
 
   return filename

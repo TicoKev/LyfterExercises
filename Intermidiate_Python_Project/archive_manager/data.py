@@ -2,6 +2,7 @@ import csv
 import os
 from classes.category import Category
 from classes.transaction import Transaction
+from project_logic import date_handler
 
 def save_transactions(filename, transactions):
   os.makedirs(os.path.dirname(filename) or ".", exist_ok=True)
@@ -10,16 +11,15 @@ def save_transactions(filename, transactions):
     writer.writerow(["Title", "Category", "Amount", "Quantity", "Date", "Total", "Type", "Color"])
     for t in transactions:
       writer.writerow([
-        getattr(t, "title", ""),
-        getattr(t, "category", ""),
-        getattr(t, "amount", ""),
-        getattr(t, "quantity", ""),
-        getattr(t, "transaction_date", ""),
-        getattr(t, "total", ""),
-        getattr(t, "transaction_type", ""),
-        getattr(t, "color", "")
+        t.title,
+        t.category,
+        t.amount,
+        t.quantity,
+        t.transaction_date.strftime("%d/%m/%Y"),
+        t.total,
+        t.transaction_type,
+        t.color
       ])
-
 
 def load_transactions(filename):
   if not os.path.exists(filename):
@@ -27,6 +27,7 @@ def load_transactions(filename):
   transactions = []
   with open(filename, mode="r", newline="", encoding="utf-8") as file:
     reader = csv.DictReader(file)
+    header = next(reader, None)
     for row in reader:
       title = row.get("Title", "")
       category = row.get("Category", "")
@@ -35,8 +36,15 @@ def load_transactions(filename):
       date = row.get("Date", "")
       tx_type = row.get("Type", "")
       color = row.get("Color", "")
+
+      formatted_date = date_handler.format_date(date)
+
+      if not formatted_date:
+        print(f"Skipping invalid transaction: invalid date '{date}'")
+        continue 
+
       try:
-        t = Transaction(title, category, amount, quantity, date, tx_type, color)
+        t = Transaction(title, category, amount, quantity, formatted_date, tx_type, color)
       except TypeError:
         from types import SimpleNamespace
         t = SimpleNamespace(

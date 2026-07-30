@@ -9,11 +9,11 @@ def handle_errors(func):
 
 @handle_errors
 def get_total_expense(expenses):
-  return sum(e.total for e in expenses.expense_data)
+  return sum(e.total for e in expenses)
 
 
 @handle_errors
 def get_total_income(income_list): 
-  return sum(i.total for i in income_list.income_data)
+  return sum(i.total for i in income_list)
   
 

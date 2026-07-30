@@ -1,8 +1,6 @@
 def calculate_account_balance(income, expenses):
-  try:
-    return float(income) - float(expenses)
-  except (ValueError, TypeError):
-    print("Both parameters must be numeric")
+  if not income and not expenses:
     return 0.0
-
+  else:
+    return float(income) - float(expenses)
   

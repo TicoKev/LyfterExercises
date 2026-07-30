@@ -1,323 +1,253 @@
 import FreeSimpleGUI as sg
 import datetime
 from classes import transaction, category
-from project_logic import calculate_account_balance, get_total_balances, date_handler, filter_transaction, update_table_values, traverse_category_list
-from project_logic import get_category_properties
-from archive_manager import data, generate_csv_report
+from project_logic import date_handler
+from archive_manager import generate_csv_report
 
 
-def main_gui(expenses_list, income_list, expense_categories, income_categories):
-  
-  layout = [
-    [sg.Text("Welcome to your personal finance manager", font=("Helvetica", 20))],
-    [sg.Button("Expenses", pad=(15, 10)), sg.Button("Income", pad=(15, 10)), sg.Button("Generate CSV report", pad=(15, 10)), 
-     sg.Button("Add a new category", pad=(15,10)), sg.Button("Exit", pad=(15, 10))],
-    [sg.Text(f"Account balance: ${calculate_account_balance.calculate_account_balance(get_total_balances.get_total_income(income_list), get_total_balances.get_total_expense(expenses_list))}",
-      key="account_balance",
-      font=(18)
-    )],
-    [
-      sg.Column([
-        [sg.Frame("Summary of expenses", [[sg.Text(f"Total: ${get_total_balances.get_total_expense(expenses_list)}", font=(14), key="summary_expenses")]], size=(350, 250), expand_x=True, expand_y=True, font=(14))],
-        [sg.Frame("Summary of income", [[sg.Text(f"Total: ${get_total_balances.get_total_income(income_list)}", font=(14), key="summary_income")]], size=(350, 250), expand_x=True, expand_y=True, font=(14))],
-      ], justification="center")
-    ],
-  ]
-  window = sg.Window("Personal Finance Manager", layout, resizable=True, finalize=True)
+def main_gui(manager, transaction_data_base):
+  window = build_main_window(manager)
   window.maximize()
-  
-  while True:
-    event, values = window.read()
-    if event == sg.WIN_CLOSED or event == "Exit":
-      break
-    
-    create_category_gui(event, expense_categories, income_categories)
-    expense_amount = expense_gui(event,expenses_list, expense_categories)
-    income_amount = income_gui(event, income_list, income_categories)
-    total_balance = calculate_account_balance.calculate_account_balance(income_amount, expense_amount)
-    
-    window["account_balance"].update(f"Account balance ${total_balance}")
-    window["summary_expenses"].update(f"Total: ${expense_amount}")
-    window["summary_income"].update(f"Total: ${income_amount}")
 
-    if event == "Export to CSV" or event == "Generate CSV report":
-      try:
-        output_path = "report_all_transactions.csv"
-        generate_csv_report.export_all_transactions_report(
-            output_path,
-            expenses_list.expense_data,
-            income_list.income_data
-        )
-        sg.popup(f"CSV report exported to {output_path}")
-      except Exception as e:
-        sg.popup_error(f"Error exporting CSV report: {e}")
+  while True:
+    event, gui_values = window.read()
+    if event in (sg.WIN_CLOSED, "Exit"):
+        break
+    if event == "Add a new category":
+        create_category_gui(event, manager)
+    elif event == "Add a new Transaction":
+        handle_add_transaction(window, manager)
+    elif event in ("Export to CSV", "Generate CSV report"):
+        handle_generate_csv(transaction_data_base)
+    elif event == "Filter":
+        handle_filter(window, gui_values, manager)
+    elif event == "Clear Filter":
+        handle_clear_filter(window, manager)
 
   window.close()
 
 
-def expense_gui(event, expenses_list, expense_categories):  
-  if event == "Expenses":
-    layout_expense = [
-      [sg.Button("New Expense")],
-      [sg.Text("Insert start date"), sg.Input("", key="start_date"), sg.Text("Insert end date"), sg.Input("", key="end_date"), sg.Button("Filter"), sg.Button("Clear Filter")],
-      [
-        sg.Frame("Expenses",
-          [
-            [sg.Table(
-              values=update_table_values.update_table_values(expenses_list.expense_data, expense_categories),
-              headings=["Title", "Category", "Amount", "Quantity", "Date", "Total", "Color"],
-              key="expenses_table",
-              expand_x=True,
-              expand_y=True,
-              auto_size_columns=True,
-              justification="center"
-            )],
-            [sg.Text(f"Total spent: ${get_total_balances.get_total_expense(expenses_list)}", key="total_spent", font=("Helvetica", 14, "bold"))]
-          ],
-            expand_x=True,
-            expand_y=True,
-            font=(14),
-            key="expense_frame"
-        )
-      ]
-    ]
-    window_expenses = sg.Window("Expenses", layout_expense, resizable=True, finalize=True)
-    window_expenses.maximize()
+def add_transaction_gui(event, manager):
+  if event != "Add a new Transaction":
+    return None
 
-    while True:
-      expense_event, expense_values = window_expenses.read()
-      if expense_event == sg.WIN_CLOSED:
-        break
-      
-      if expense_event == "New Expense":
-        try:
-          expense = add_transaction_gui(expense_event, "New Expense", expense_categories, "expense")
-
-          if expense:
-            expenses_list.add_to_expense_data_base(expense)
-            data.save_transactions("transactions_expenses.csv", expenses_list.expense_data)
-
-            total_spent = get_total_balances.get_total_expense(expenses_list)
-            table_values = update_table_values.update_table_values(expenses_list.expense_data, expense_categories)
-
-            window_expenses["expenses_table"].update(values=table_values)
-            window_expenses["total_spent"].update(f"Total spent: ${total_spent}")
-        
-        except Exception as error:
-          sg.popup_error(f"Error ocurred while adding the expense, {error}")
-
-      if expense_event == "Filter":
-        if expense_values["start_date"] == "" or expense_values["end_date"] == "":
-          sg.popup_error("Please enter both start and end date")
-        else:
-          if not window_expenses["expenses_table"].Values:
-            sg.popup_error("The table is empty")   
-          else:
-            try:
-              start_date = expense_values["start_date"].strip()
-              end_date = expense_values["end_date"].strip()
-              formatted_start_date = date_handler.format_date(start_date)
-              formatted_end_date = date_handler.format_date(end_date)
-              filtered_data = filter_transaction.filter_transaction(formatted_start_date, formatted_end_date, expenses_list.expense_data)
-              
-              table_values = update_table_values.update_table_values(filtered_data, expense_categories)
-              window_expenses["expenses_table"].update(values=table_values)
-            except ValueError as error:
-              sg.popup_error(error)
-      
-      if expense_event == "Clear Filter":
-        table_values = update_table_values.update_table_values(expenses_list.expense_data, expense_categories)
-        window_expenses["expenses_table"].update(values=table_values)
-        window_expenses["start_date"].update("")
-        window_expenses["end_date"].update("")
-    
-    window_expenses.close()
-  
-  return get_total_balances.get_total_expense(expenses_list)
-
-
-def income_gui(event, income_list, income_categories):
-
-  if event == "Income":
-    layout_income = [
-      [sg.Button("New Income")],
-      [sg.Text("Insert start date"), sg.Input("", key="start_date"), sg.Text("Insert end date"), sg.Input("", key="end_date"), sg.Button("Filter"), sg.Button("Clear Filter")],
-      [
-        sg.Frame("Income",
-          [
-            [sg.Table(
-              values=update_table_values.update_table_values(income_list.income_data, income_categories),
-              headings=["Title","Category", "Amount", "Quantity", "Date", "Total", "Color"],
-              key="income_table",
-              expand_x=True,
-              expand_y=True,
-              auto_size_columns=True,
-              justification="center"
-            )],
-            [sg.Text(f"Total Income: ${get_total_balances.get_total_income(income_list)}", key="total_income", font=("Helvetica", 14, "bold"))]
-          ],
-            expand_x=True,
-            expand_y=True,
-            font=(14),
-            key="income_frame"
-        )
-      ]
-    ]
-    window_income = sg.Window("Income", layout_income, resizable=True, finalize=True)
-    window_income.maximize()
-
-    while True:
-      income_event, income_values = window_income.read()
-      
-      if income_event == sg.WIN_CLOSED:
-        break
-      
-      if income_event == "New Income":
-        try:
-          income = add_transaction_gui(income_event, "New Income", income_categories, "income")
-          
-          if income:
-            income_list.add_to_income_data_base(income)
-            data.save_transactions("transactions_income.csv", income_list.income_data)
-
-            total_income = get_total_balances.get_total_income(income_list)
-            table_values = update_table_values.update_table_values(income_list.income_data, income_categories)
-            window_income["income_table"].update(values=table_values)
-            window_income["total_income"].update(f"Total income: ${total_income}")
-        except Exception as error:
-          sg.popup_error(f"Error ocurred while adding the income, {error}")
-      
-      if income_event == "Filter":
-        if income_values["start_date"] == "" or income_values["end_date"] == "":
-          sg.popup_error("Please enter both start and end date")
-        else:
-          if not window_income["income_table"].Values:
-            sg.popup_error("The table is empty")
-          else:
-            try:
-              start_date = income_values["start_date"].strip()
-              end_date = income_values["end_date"].strip()
-              formatted_start_date = date_handler.format_date(start_date)
-              formatted_end_date = date_handler.format_date(end_date)
-              filtered_data = filter_transaction.filter_transaction(formatted_start_date, formatted_end_date, income_list.income_data)
-              table_values = update_table_values.update_table_values(filtered_data, income_categories)
-              window_income["income_table"].update(values=table_values)
-            except ValueError as error:
-              sg.popup_error(error)
-
-      if income_event == "Clear Filter":
-        table_values = update_table_values.update_table_values(income_list.income_data, income_categories)
-        window_income["income_table"].update(values=table_values)
-        window_income["start_date"].update("")
-        window_income["end_date"].update("")
-    
-    window_income.close()
-
-  return get_total_balances.get_total_income(income_list)
-
-
-def add_transaction_gui(event, title, categories, transaction_type):
+  window = build_transaction_window()
   new_transaction = None
 
-  if event == f"New {transaction_type.capitalize()}":
-    layout_new_expense = [
-      [sg.Column([
-        [sg.Text(f"Add {transaction_type.capitalize()} ", font=("Helvetica", 20, "bold"))],
-        [sg.Text("Title:", size=(10, 1)), sg.Input("", size=(20, 1), key="title")],
-        [sg.Text("Category:", size=(10, 1)), sg.Combo(traverse_category_list.traverse_category_list(categories),size=(18, 1), readonly=True, key="category")],
-        [sg.Text("Amount:", size=(10,1)), sg.Input("", size=(20, 1), key="amount")],
-        [sg.Text("Quantity:", size=(10,1)), sg.Input("", size=(20, 1), key="quantity")],
-        [sg.Text("Date:", size=(10,1)), sg.Input("", size=(20, 1), key="date")],
-        [sg.Button("Cancel", size=(10,1)), sg.Button("Accept", size=(10,1))],
-        ], element_justification="center")]
-    ]
-    window_new_expense = sg.Window(title, layout_new_expense)
-
-    while True:
-      new_expense_event, new_expense_values = window_new_expense.read()
-      if new_expense_event == sg.WIN_CLOSED or new_expense_event == "Cancel":
+  while True:
+    ev, values = window.read()
+    if ev in (sg.WIN_CLOSED, "Cancel"):
         break
 
-      if new_expense_event == "Accept":
-        transaction_title = new_expense_values["title"].strip()
-        category = new_expense_values["category"].strip()
-        amount = new_expense_values["amount"].strip()
-        quantity = new_expense_values["quantity"].strip()
-        transaction_date = new_expense_values["date"].strip()
-        
-        formatted_date = date_handler.format_date(transaction_date)
-        if formatted_date is None:
-          sg.popup_error("Error, date format is incorrect or the date is invalid")
-          continue
+    if ev == "type":
+      t_type = values["type"]
+      categories = get_categories_by_type(manager, t_type)
+      window["category"].update(values=categories)
 
-        if not all ([transaction_title, category, amount, quantity, transaction_date]):
-          sg.popup_error("Error, all fields are obligatory")
-      
-        try:
-          formatted_date = date_handler.format_date(transaction_date)
+    if ev == "Accept":
+      try:
+        title, category, t_type, amount, quantity, formatted_date, selected_obj = validate_transaction_inputs(values, manager)
+        new_transaction = create_transaction_object(title, category, t_type, amount, quantity, formatted_date, selected_obj)
+        break
+      except ValueError as e:
+        sg.popup_error(str(e))
+        continue
 
-          if not isinstance(formatted_date, datetime.datetime):
-            sg.popup_error("Error, date format is incorrect or the date is invalid")
-            continue
-          
-          selected_obj = get_category_properties.get_category_by_name(categories, category)
-          new_transaction = transaction.Transaction(transaction_title, selected_obj.category_type, amount, quantity, transaction_date, transaction_type, getattr(selected_obj, "color", ""))
-          new_transaction.type = category
-
-          break
-        
-        except ValueError as error:
-          sg.popup_error(error)
-    window_new_expense.close()
-
+  window.close()
   return new_transaction
 
 
-def create_category_gui(event, expense_categories, income_categories):
+def create_category_gui(event, manager):
+  if event != "Add a new category":
+    return None
+
+  window = build_category_window()
   new_category = None
 
-  if event == "Add a new category":
-    layout = [
-      [sg.Text("Select transaction type:"), sg.Combo(values=["Income", "Expense"], key="category_list")],
-      [sg.Text("Enter the new category"), sg.Input("", key="new_category")],
-      [sg.Text("Color:", size=(10,1)), sg.ColorChooserButton("Select a color", target="color_input", size=(17, 1))],
-      [sg.Text("Selected:", size=(10,1)), sg.Input("", key="color_input", readonly=True, size=(20,1), text_color="black")],
-      [sg.Button("Cancel"), sg.Button("Accept")]
-    ]
-    category_window = sg.Window("New Category", layout)
+  while True:
+    ev, values = window.read()
+    if ev in (sg.WIN_CLOSED, "Cancel"):
+      break
+    if ev == "Accept":
+      try:
+        new_category, category_color, selection = validate_category_inputs(values)
+        manager.add_category(new_category, category_color, selection)
+        sg.popup(f"New {selection.lower()} category added")
+        window["new_category"].update("")
+        window["category_list"].update("")
+        window["color_input"].update("")
+      except ValueError as e:
+        sg.popup_error(str(e))
+        continue
 
-    while True:
-      event_category, values = category_window.read()
-
-      if event_category == sg.WIN_CLOSED or event_category == "Cancel":
-        break
-
-      if event_category == "Accept":
-        new_category = values["new_category"].strip()
-        category_color = values["color_input"]
-        selection = values["category_list"]
-
-        if not new_category:
-          sg.popup_error("Error, new category field is obligatory")
-          continue
-        if not selection:
-          sg.popup_error("Error, you must select Income or Expense")
-          continue
-        
-        if selection == "Income":
-          new_category_option = category.Category(new_category, category_color)
-          income_categories.append(new_category_option)
-          data.save_categories("categories_income.csv", income_categories)
-          category_window["new_category"].update("")
-          sg.popup("New income category added")
-          
-        elif selection == "Expense":
-          new_category_option = category.Category(new_category, category_color)
-          expense_categories.append(new_category_option)  
-          data.save_categories("categories_expenses.csv", expense_categories) 
-          category_window["new_category"].update("")
-          sg.popup("New expense category added")
-
-    category_window.close()
+  window.close()
   return new_category
 
+
+def build_main_window(manager):
+  layout = [
+    [sg.Text("Welcome to your personal finance manager", font=("Helvetica", 20))],
+    [sg.Button("Add a new category"), sg.Button("Add a new Transaction"),
+     sg.Button("View Expenses"), sg.Button("View Incomes"),
+     sg.Button("Generate CSV report"), sg.Button("Exit")],
+    [sg.Text(f"Account balance: ${manager.calculate_balance()}",
+             key="account_balance", font=("Helvetica", 18, "bold"))],
+    [sg.Text("Insert start date"), sg.Input("", key="start_date"),
+     sg.Text("Insert end date"), sg.Input("", key="end_date"),
+     sg.Button("Filter"), sg.Button("Clear Filter")],
+    [sg.Frame("Summary of transactions",
+      [[sg.Table(values=manager.update_table_values_combined(),
+                 headings=["Title", "Category", "Amount", "Quantity", "Date", "Total", "Type", "Color"],
+                 expand_x=True, expand_y=True,
+                 auto_size_columns=True, justification="center",
+                 key="summary_transactions")]],
+      expand_x=True, expand_y=True)]
+  ]
+  return sg.Window("Personal Finance Manager", layout, resizable=True, finalize=True)
+
+
+def handle_add_transaction(window, manager):
+  try:
+    manager.validate_categories()
+    transaction_obj = add_transaction_gui("Add a new Transaction", manager)
+    if transaction_obj:
+      updated_values = manager.add_transaction(
+          transaction_obj.title, transaction_obj.category,
+          transaction_obj.transaction_type, transaction_obj.amount,
+          transaction_obj.quantity, transaction_obj.transaction_date
+      )
+      window["summary_transactions"].update(values=updated_values)
+      window["account_balance"].update(f"Account balance ${manager.calculate_balance()}")
+  except ValueError as e:
+    sg.popup_error("Incorrect information entered.")
+
+
+def handle_generate_csv(transaction_data_base):
+  try:
+    output_path = "report_all_transactions.csv"
+    generate_csv_report.export_all_transactions_report(
+        output_path,
+        transaction_data_base.get_expense(),
+        transaction_data_base.get_income()
+    )
+    sg.popup(f"CSV report exported to {output_path}")
+  except ValueError as e:
+    sg.popup_error(str(e))
+  except Exception:
+    sg.popup_error("Unexpected error occurred while exporting the report.")
+
+
+
+def handle_filter(window, gui_values, manager):
+  try:
+      if not gui_values["start_date"] or not gui_values["end_date"]:
+          sg.popup_error("Please enter both start and end date")
+          return
+      if not window["summary_transactions"].Values:
+          sg.popup_error("The table is empty")
+          return
+      start_date = gui_values["start_date"].strip()
+      end_date = gui_values["end_date"].strip()
+      formatted_start, formatted_end = manager.check_correct_filtered_dates(start_date, end_date)
+      if not formatted_start or not formatted_end:
+          sg.popup_error("Invalid date format. Please use DD/MM/YYYY.")
+          return
+      filtered_data = manager.filter_transactions(start_date, end_date)
+      table_values = manager.update_table_values_combined(filtered_data)
+      window["summary_transactions"].update(values=table_values)
+  except (ValueError, TypeError):
+      sg.popup_error("Error: the dates entered are invalid. Please use DD/MM/YYYY.")
+  except Exception:
+        sg.popup_error("An unexpected error occurred while filtering. Please try again.")
+
+
+def handle_clear_filter(window, manager):
+  table_values = manager.update_table_values_combined()
+  window["summary_transactions"].update(values=table_values)
+  window["start_date"].update("")
+  window["end_date"].update("")
+
+
+def build_transaction_window():
+  layout_transaction = [
+      [sg.Text("Add new transaction", font=("Helvetica", 20, "bold"))],
+      [sg.Text("Title:"), sg.Input("", key="title")],
+      [sg.Text("Type:"), sg.Combo(values=["Income", "Expense"], key="type", enable_events=True, readonly=True)],
+      [sg.Text("Category:"), sg.Combo(values=[], key="category", readonly=True)],
+      [sg.Text("Amount:"), sg.Input("", key="amount")],
+      [sg.Text("Quantity:"), sg.Input("", key="quantity")],
+      [sg.Text("Date:"), sg.Input("", key="date")],
+      [sg.Button("Cancel"), sg.Button("Accept")]
+  ]
+  return sg.Window("New Transaction", layout_transaction)
+
+def validate_transaction_inputs(values, manager):
+  title = values["title"].strip()
+  category = values["category"].strip()
+  t_type = values["type"].strip()
+  amount = values["amount"].strip()
+  quantity = values["quantity"].strip()
+  date_str = values["date"].strip()
+
+  if not all([title, category, amount, quantity, date_str]):
+      raise ValueError("All fields are obligatory")
+  
+  if float(amount) < 0 and int(quantity) < 0:
+      raise ValueError("Amount and quantity cannot both be negative")
+  
+  formatted_date = date_handler.format_date(date_str)
+  if not formatted_date:
+      raise ValueError("Date format is incorrect or invalid")
+  
+  if not date_handler.date_check(formatted_date):
+      raise ValueError("Date cannot be in the future")
+  
+  selected_obj = manager.get_category_name(category)
+  if not selected_obj:
+      raise ValueError("Category not found")
+  
+  return title, category, t_type, amount, quantity, formatted_date, selected_obj
+
+
+def create_transaction_object(title, category, t_type, amount, quantity, formatted_date, selected_obj):
+  return transaction.Transaction(
+      title,
+      selected_obj.category_type,
+      amount,
+      quantity,
+      formatted_date,
+      t_type,
+      getattr(selected_obj, "color", "")
+  )
+
+
+def get_categories_by_type(manager, t_type):
+  categories = [c.category_type for c in manager.get_categories(t_type)]
+  if not categories:
+    sg.popup_error(f"No {t_type.lower()} categories available, please create one first.")
+  return categories
+
+
+
+def build_category_window():
+  layout = [
+    [sg.Text("Select transaction type:"), sg.Combo(values=["Income", "Expense"], key="category_list", readonly=True)],
+    [sg.Text("Enter the new category"), sg.Input("", key="new_category")],
+    [sg.Text("Color:"), sg.ColorChooserButton("Select a color", target="color_input")],
+    [sg.Text("Selected:"), sg.Input("", key="color_input", readonly=True, text_color="black")],
+    [sg.Button("Cancel"), sg.Button("Accept")]
+  ]
+  return sg.Window("New Category", layout)
+
+
+def validate_category_inputs(values):
+  new_category = values["new_category"].strip()
+  category_color = values["color_input"]
+  selection = values["category_list"]
+
+  if not new_category:
+    raise ValueError("New category field is obligatory")
+  if not selection:
+    raise ValueError("You must select Income or Expense")
+
+  return new_category, category_color, selection

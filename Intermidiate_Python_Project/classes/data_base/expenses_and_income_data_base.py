@@ -1,17 +1,34 @@
-from classes.transaction import Transaction
+class Transactions_Data_Base():
 
-class ExpenseDataBase():
   def __init__(self):
-    self.expense_data = []
+    self._income_data_base = []
+    self._expense_data_base = []
 
-  def add_to_expense_data_base(self, expense: Transaction):
-    self.expense_data.append(expense)
-    return self.expense_data
 
-class IncomeDataBase():
-  def __init__(self):
-    self.income_data = []
+  def add_transaction(self, transaction):
+    if transaction.transaction_type == "Income":
+      self._income_data.append(transaction)
+    elif transaction.transaction_type == "Expense":
+      self._expense_data.append(transaction)
+    else:
+      raise ValueError("Unknown transaction type")
+    return self.get_all_transactions()
 
-  def add_to_income_data_base(self, income: Transaction):
-    self.income_data.append(income)
-    return self.income_data
+
+  def set_expense(self, expenses):
+    self._expense_data = expenses
+
+
+  def set_income(self, incomes):
+    self._income_data = incomes
+
+  def get_income(self):
+    return list(self._income_data)
+
+  
+  def get_expense(self):
+    return list(self._expense_data)
+
+
+  def get_all_transactions(self):
+    return self._income_data + self._expense_data
