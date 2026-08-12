@@ -9,6 +9,11 @@
   The browser send a request using the IP obtained from the DNS.
 4. What does the server do?
   The server sends the response back to the client with the content of the page, allowing the access to YouTube.
+5. How does the HTTP/HTTPS protocol come into play?
+  Both protocols come into play when making requests such as GET, POST, PUT, or DELETE to specify the desired action. The HTTP protocol ensures that each request is properly structured with headers, body, and parameters, and that the server responds with a corresponding status code. HTTPS, on the other hand, adds an extra layer of security by encrypting the communication through SSL/TLS, which helps protect sensitive data. For example, when working with authentication tokens or user credentials. 
+  
+  ![client-server process diagram](client-server-diagram.png)
+
 
 ## 2. Frontend and Backend in Action
   The fronted would be the section where a customer can create the appointment, check availability, choose the requiered service. 
