@@ -20,6 +20,8 @@ ALTER TABLE
     `invoices` ADD UNIQUE `invoices_invoice_number_unique`(`invoice_number`);
 CREATE TABLE `products_per_invoice`(
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `product_id` INT NOT NULL,
+    `invoice_id` INT NOT NULL,
     `quantity` INT NOT NULL,
     `total_amount` INT NOT NULL
 );
@@ -47,8 +49,6 @@ CREATE TABLE `reviews`(
     `rating` TINYINT NOT NULL,
     `date` DATE NOT NULL
 );
-ALTER TABLE
-    `reviews` ADD UNIQUE `reviews_product_code_unique`(`product_code`);
 CREATE TABLE `payment_method`(
     `method_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `method_type` TEXT NOT NULL,
@@ -57,15 +57,15 @@ CREATE TABLE `payment_method`(
 ALTER TABLE
     `users` ADD CONSTRAINT `users_id_foreign` FOREIGN KEY(`id`) REFERENCES `reviews`(`review_id`);
 ALTER TABLE
+    `invoices` ADD CONSTRAINT `invoices_id_foreign` FOREIGN KEY(`id`) REFERENCES `products_per_invoice`(`product_id`);
+ALTER TABLE
     `users` ADD CONSTRAINT `users_id_foreign` FOREIGN KEY(`id`) REFERENCES `invoices`(`id`);
 ALTER TABLE
     `products` ADD CONSTRAINT `products_id_foreign` FOREIGN KEY(`id`) REFERENCES `shopping_cart_product`(`shopping_cart_id`);
 ALTER TABLE
-    `invoices` ADD CONSTRAINT `invoices_id_foreign` FOREIGN KEY(`id`) REFERENCES `products_per_invoice`(`id`);
-ALTER TABLE
     `products` ADD CONSTRAINT `products_id_foreign` FOREIGN KEY(`id`) REFERENCES `reviews`(`review_id`);
 ALTER TABLE
-    `products` ADD CONSTRAINT `products_id_foreign` FOREIGN KEY(`id`) REFERENCES `products_per_invoice`(`id`);
+    `products` ADD CONSTRAINT `products_id_foreign` FOREIGN KEY(`id`) REFERENCES `products_per_invoice`(`invoice_id`);
 ALTER TABLE
     `shopping_cart` ADD CONSTRAINT `shopping_cart_id_foreign` FOREIGN KEY(`id`) REFERENCES `shopping_cart_product`(`product_id`);
 ALTER TABLE
