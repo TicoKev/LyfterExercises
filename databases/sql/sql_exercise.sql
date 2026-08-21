@@ -52,7 +52,7 @@ CREATE TABLE shopping_cart_products(
 
 CREATE TABLE reviews(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  product_code CHAR(12) NOT NULL,
+  product_id REFERENCES products(id) NOT NUll,
   comment TEXT,
   rating SMALLINT NOT NULL,
   date DATE NOT NULL
@@ -62,7 +62,8 @@ CREATE TABLE reviews(
 CREATE TABLE payment_method(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   method_type VARCHAR(25) NOT NULL,
-  bank_name VARCHAR(30) NOT NULL
+  bank_name VARCHAR(30) NOT NULL,
+  invoice_id INT REFERENCES invoices(id) NOT NULL
 );
 
 -- SQLITE Limitations
