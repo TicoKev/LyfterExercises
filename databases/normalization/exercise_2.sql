@@ -1,15 +1,16 @@
 -- SQLite
 CREATE TABLE cars(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  vin CHAR(11) UNIQUE NOT NULL
+  vin CHAR(11) UNIQUE NOT NULL,
+  model_id INT REFERENCES models(id) NOT NUll,
+  color_id INT REFERENCES colors(id) NOT NULL
 );
 
 CREATE TABLE models(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   model_name VARCHAR(25) NOT NULL,
-  year CHAR(4) NOT NULL,
   make_id INT REFERENCES makes(id) NOT NULL,
-  color_id INT REFERENCES colors(id) NOT NULL
+  year CHAR(4) NOT NULL
 );
 
 CREATE TABLE makes(
