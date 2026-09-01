@@ -1,17 +1,15 @@
 -- SQLite
 CREATE TABLE cars(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  vin CHAR(11) UNIQUE NOT NULL,
-  model_id INT REFERENCES models(id),
-  color_id INT REFERENCES colors(id),
-  year_id INT REFERENCES years(id)
-
+  vin CHAR(11) UNIQUE NOT NULL
 );
 
 CREATE TABLE models(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   model_name VARCHAR(25) NOT NULL,
-  make_id INT REFERENCES makes(id) NOT NULL
+  year CHAR(4) NOT NULL,
+  make_id INT REFERENCES makes(id) NOT NULL,
+  color_id INT REFERENCES colors(id) NOT NULL
 );
 
 CREATE TABLE makes(
@@ -25,11 +23,6 @@ CREATE TABLE colors(
   color VARCHAR(30) NOT NULL
 );
 
-CREATE TABLE years(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  year CHAR(4) NOT NULL
-);
-
 
 CREATE TABLE owners(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,12 +31,26 @@ CREATE TABLE owners(
 );
 
 CREATE TABLE car_owners(
-  car_id REFERENCES cars(id),
-  owner_id REFERENCES owners(id),
-  insurance_company VARCHAR(35) NOT NULL,
-  insurance_policy VARCHAR(25) NOT NULL,
+  car_id REFERENCES cars(id) NOT NULL,
+  owner_id REFERENCES owners(id) NOT NULL,
+  insurance_policy_id INT REFERENCES insurance_policies(id) NOT NULL,
   PRIMARY KEY(car_id, owner_id)
 );
+
+
+CREATE TABLE insurance_companies(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  insurance_company_name VARCHAR(35) NOT NULL
+);
+
+
+CREATE TABLE insurance_policies(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  policy_name VARCHAR(25),
+  insurance_company_id INT REFERENCES insurance_companies(id) NOT NULL
+);
+
+
 
 --Justification for the Cars exercise
 

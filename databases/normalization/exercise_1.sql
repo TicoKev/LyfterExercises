@@ -1,6 +1,7 @@
 CREATE TABLE orders(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INT REFERENCES customers(id) NOT NULL,
+  customer_id INT REFERENCES customers(id) NOT NULL,
+  address_id INT REFERENCES addresses(id) NOT NUll,
   delivery_time DATETIME NOT NULL
 );
 
