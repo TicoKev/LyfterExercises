@@ -50,7 +50,7 @@ VALUES
   ('Luke Skywalker', 'darth.son@email.com');
 
 
-INSERT INTO rents (bookid, customerid, state)
+INSERT INTO rents (book_id, customer_id, state)
 VALUES
   (1, 2, 'Returned'),
   (2, 2, 'Returned'),
@@ -62,10 +62,9 @@ VALUES
 --Exercise queries
 
 --1.
-SELECT books.name AS book_name, authors.name AS author_name
+SELECT books.name as book_name, authors.name as author_name
   FROM books
-  JOIN authors ON books.author_id = authors.id
-  WHERE books.author_id IS NOT NULL
+  LEFT JOIN authors ON books.author_id = authors.id
 
 -- 2.
 SELECT books.name
@@ -82,7 +81,7 @@ SELECT authors.name
 SELECT DISTINCT books.id, books.name
   FROM books
   JOIN rents ON books.id = rents.book_id
-  WHERE state IN ('Returned', 'On Time', 'Overdue');
+  WHERE state IN ('Returned', 'On time', 'Overdue');
 
 --5.
 SELECT books.id, books.name
