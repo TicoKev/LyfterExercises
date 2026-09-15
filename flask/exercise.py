@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-VALID_STATES = ['pending', 'inprogress', 'completed','porhacer', 'enprogreso', 'completada']
+VALID_STATES = ['pending', 'inprogress', 'completed']
 
 STATE_ALIASES = {
     'porhacer': 'pending',
@@ -47,10 +47,10 @@ def add_task():
     if field_error:
       return field_error
 
-    if not isinstance(identifier, int) or identifier < 0:
-      return jsonify({'error': f'Identifier must be a positive number.'}), 400
+    if not isinstance(identifier, int) or identifier <= 0:
+      return jsonify({'error': f'Identifier must be a positive number and can`t be 0.'}), 400
 
-    values_error = check_string_values(title, description)
+    values_error = check_string_values(identifier, title, description, state)
     if values_error:
       return values_error
     
@@ -190,8 +190,8 @@ def check_string_values(title='', description='', state=''):
     return jsonify({'error': 'title, description and state must be text only'}), 400
 
 
-def is_field_empty(identifier = 0, title = '', description = '', state = ''):
-  if not identifier or not title or not description or not state:
+def is_field_empty(identifier, title = '', description = '', state = ''):
+  if identifier == None or not title or not description or not state:
     return jsonify({'error': 'All fields are required'}), 400
 
 if __name__ == '__main__':
