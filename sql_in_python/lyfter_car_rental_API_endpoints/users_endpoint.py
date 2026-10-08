@@ -11,25 +11,40 @@ user_repo = UserRepository(db_manager)
 @users_bp.route('/users')
 def get_users():
   try:
-  
-    formatted_results = user_repo.get_all()
     filter_items = request.args.to_dict()
-    users = formatted_results
     
     if filter_items:
       for key, value in filter_items.items():
         if not value:
-          return jsonify({'error': 'filter is empty'}), 400
-        
-        if key == 'account_state' and value not in VALID_ACCOUNT_STATES:
-          return jsonify({'error': f'Invalid state: {value}, correct states: active, suspended or closed'})
+          return jsonify({'error': f'Filter {key} is empty'}), 400
+      if 'account_state' in filter_items:
+        filter_items['account_state'] = filter_items['account_state'].lower()
+        if filter_items['account_state'] not in VALID_ACCOUNT_STATES:
+          return jsonify({'error': f'Invalid state: {filter_items['account_state']}, correct states: active, suspended or closed'})
+      
+      if 'date_of_birth' in filter_items:
+        try:
+            datetime.fromisoformat(filter_items['date_of_birth'])
+        except ValueError:
+            return jsonify({'error': 'Date of birth must be in format YYYY-MM-DD'}), 400
 
-        if key == 'date_of_birth' and not isinstance(value, str):
-          return jsonify({'error': 'Date of birth must be a text format(YYYY-MM-DD)'}), 400
+      if 'name' in filter_items:
+        filter_items['name'] = filter_items['name'].lower()
+            
+      if 'username' in filter_items:
+        filter_items['username'] = filter_items['username'].lower()
 
-        
-        users = [u for u in users if str(u.get(key, "")).lower() == value.lower()]
+      if 'email' in filter_items:
+        filter_items['email'] = filter_items['email'].lower()
 
+      users = user_repo.get_filtered(filter_items)
+    
+    else:
+        users = user_repo.get_all()        
+    
+    if not users:
+      return jsonify({'error': 'Unable to get the users'}), 400 
+    
     return{'data' : users}, 200
   
   except Exception as e:
@@ -39,26 +54,29 @@ def get_users():
 def create_user():
   try:
     data = request.get_json()
-    name = data['name']
-    username = data['username']
-    email = data['email']
-    password = data['user_password']
-    birth_date = datetime.fromisoformat(data['date_of_birth'])
-    account_state = data['account_state']
+    name = data.get('name')
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('user_password')
+    birth_date = datetime.fromisoformat(data.get('date_of_birth'))
+    account_state = data.get('account_state')
 
-    if not name or not username or not email or not password or not birth_date:
-      return jsonify({'error': 'All fields are required'})
+    if not name or not username or not email or not password or not birth_date or not account_state:
+      return jsonify({'error': 'All fields are required'}), 400
 
     if not all(isinstance(s, str) for s in [name, username, email, account_state]):
-      return jsonify({'error': 'name, username, email and account_state must be text'})
+      return jsonify({'error': 'name, username, email and account_state must be text'}), 400
 
     if not isinstance(birth_date, (date, datetime)):
-      return jsonify({'error': 'The date of birth is not a date'})
+      return jsonify({'error': 'The date of birth is not a date'}), 400
     date_of_birth = birth_date
 
     new_user = user_repo.create_user(name=name, username=username, email=email, user_password=password, date_of_birth=date_of_birth, account_state=account_state)
 
-    return jsonify({'message': 'User added succesfully', 'user': new_user }), 200
+    if not new_user:
+          return jsonify({'error': 'Error while adding the new user'}), 400
+        
+    return jsonify({'message': 'User added succesfully', 'user': new_user }), 201
 
   except Exception as e:
     return jsonify({'error': f'Unexpected error {e}'}), 500
@@ -66,13 +84,9 @@ def create_user():
 @users_bp.route('/users/<int:id>', methods=['PUT'])
 def modify_user(id):
   try:
-    users_list = user_repo.get_all()
-    user =  next((u for u in users_list if u['id'] == id), None)
 
-    if not user:
-      return jsonify({'error': 'User not found'}), 404
-    
     data = request.get_json()
+    user = user_repo.get_by_id(id)
 
     if 'account_state' in data:
       if not data['account_state']:
@@ -81,7 +95,7 @@ def modify_user(id):
       if not isinstance(data['account_state'], str):
         return jsonify({'error': 'The state must be text'}), 400
       
-      if  data['account_state'] not in VALID_ACCOUNT_STATES:
+      if data['account_state'] not in VALID_ACCOUNT_STATES:
         return jsonify({'error': 'Invalid account state, correct states: active, suspended or closed'})
       
       user['account_state'] = data.get('account_state')
@@ -96,6 +110,7 @@ def modify_user(id):
 
       user['is_delinquent'] = data.get('is_delinquent')
       user_repo.modify_is_delinquent(user['is_delinquent'], id)
+    
     return jsonify({'message': 'User state modified successfully', 'user': user}), 200
       
   except Exception as e:

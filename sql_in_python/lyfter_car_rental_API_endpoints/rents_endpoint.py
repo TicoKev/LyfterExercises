@@ -12,23 +12,25 @@ def create_rent():
   try:
     data = request.get_json()
     
-    user =  data['user_id']
-    car = data['car_id']
-    rent_date = data['rent_date']
-    rent_status = data['rent_status']
+    user =  data.get('user_id')
+    car = data.get('car_id')
+    rent_status = data.get('rent_status')
 
-    if not user or not car or not rent_date or not rent_status:
-      return jsonify({'error': 'All fields are required'})
+    if not user or not car or not rent_status:
+      return jsonify({'error': 'All fields are required'}), 400
 
     if not all(isinstance(s, int) for s in [user, car]):
-      return jsonify({'error': 'user and car must be a number.'})
+      return jsonify({'error': 'user and car must be a number.'}), 400
 
     if not isinstance(rent_status, str):
-      return jsonify({'error': 'Rent status must be a number'})
+      return jsonify({'error': 'Rent status must be text'}), 400
 
-    new_rent = rent_repo.create_rent(user, car, rent_date, rent_status)
+    new_rent = rent_repo.create_rent(user, car, rent_status)
 
-    return jsonify({'message': 'rent added successfully', 'rent': new_rent}), 200
+    if not new_rent:
+      return jsonify({'error': 'Error while adding the new rent'}), 400
+    
+    return jsonify({'message': 'rent added successfully', 'rent': new_rent}), 201
 
   except Exception as e:
     return jsonify({'error': f'Unexpected error, {e}'}), 500  
@@ -37,40 +39,43 @@ def create_rent():
 @rents_bp.route('/rents')
 def get_rents():
   try:
-    formatted_results = rent_repo.get_all()
     filter_items = request.args.to_dict()
-    rents = formatted_results
 
     if filter_items:
       for key, value in filter_items.items():
         if not value:
-          return jsonify({'error': 'filter is empty'}), 400
+          return jsonify({'error': f'filter {key} is empty'}), 400
         
-        if key == 'rent_status' and value not in VALID_RENT_STATES:
-          return jsonify({'error': f'Invalid state {value}, correct states: pending, active, completed, cancelled, overdue'})
+      if 'rent_status' in filter_items and filter_items['rent_status'] not in VALID_RENT_STATES:
+        return jsonify({'error': f'Invalid state {value}, correct states: pending, active, completed, cancelled, overdue'})
+      
+      if 'rent_date' in filter_items:
+        rent_date = filter_items['rent_date']
+        if not isinstance(rent_date, str):
+          return jsonify({'error': 'Rent date must be a text format(YYYY-MM-DD)'}), 400
+       
+        try:
+          rent_date = datetime.fromisoformat(filter_items['rent_date']).date()
+        except ValueError:
+          return jsonify({'error': f'The date entered is not correct'}), 400
         
-        if key == 'rent_date':
-          rent_date = value
-          if not isinstance(rent_date, str):
-            return jsonify({'error': 'Rent date must be a text format(YYYY-MM-DD)'}), 400
-         
-          try:
-            rent_date = datetime.fromisoformat(value).date()
-          except ValueError:
-            return jsonify({'error': f'The date entered is not correct'})
-        
-        rents = [c for c in rents if str(c.get(key, "")).lower() == value.lower()]
+      rents = rent_repo.get_filtered(filter_items)
 
+    else:
+      rents = rent_repo.get_all()
+
+    if not rents:
+      return jsonify({'error': 'Unable to get the rent'}), 400 
+    
     return jsonify({'data': rents}), 200
 
   except Exception as e:
     return jsonify({'error': f'Unexpected error, {e}'}), 500
 
-@rents_bp.route('/rents/<int:id>', methods=['PUT', 'PATCH'])
+@rents_bp.route('/rents/<int:id>', methods=['PUT'])
 def modify_rent(id):
   try:
-    rents_list = rent_repo.get_all()
-    rent = next((c for c in rents_list if c['id'] == id), None)
+    rent = rent_repo.get_by_id(id)
 
     if not rent:
       return jsonify({'error': 'rent not found'}), 404
@@ -89,7 +94,10 @@ def modify_rent(id):
 
       rent['rent_status'] = data.get('rent_status')
       rent_repo.modify_rent_status(rent['rent_status'], id)
+      
       return jsonify({'message': 'rent status modified successfully', 'rent': rent}), 200
+    else:
+      return jsonify({'error': 'Missing rent status field'}), 400
     
   except Exception as e:
     return  jsonify({'error': f'Unexpected error, {e}'}), 500

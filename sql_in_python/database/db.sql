@@ -177,41 +177,16 @@ UPDATE users SET account_state = 'active' WHERE id = 10;
 UPDATE cars SET state = 'available' WHERE id = 5;
 
 --5.  
-CREATE OR REPLACE FUNCTION set_car_rented() RETURNS TRIGGER AS $$
-BEGIN
-	IF NEW.rent_status = 'active' or NEW.rent_status = 'pending' THEN
-		Update cars
-		SET state = 'rented'
-		WHERE id = NEW.car_id;
-	END IF;
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_set_car_rented
-AFTER INSERT ON users_cars
-FOR EACH ROW
-EXECUTE FUNCTION set_car_rented();
-
+Update cars
+SET state = 'rented'
+WHERE id = 35
 INSERT INTO users_cars (user_id, car_id, rent_status) VALUES (11, 35, 'active');
 
 --6.  
-CREATE OR REPLACE FUNCTION set_car_available() RETURNS TRIGGER AS $$
-BEGIN
-	IF NEW.rent_status = 'completed' THEN
-		Update cars
-		SET state = 'available'
-		WHERE id = NEW.car_id;
-	END IF;
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_set_car_available
-AFTER UPDATE ON users_cars
-FOR EACH ROW
-EXECUTE FUNCTION set_car_available();
-
+Update cars
+SET state = 'available'
+WHERE id = 11
 UPDATE users_cars
 SET rent_status = 'completed'
 WHERE id = 11;
