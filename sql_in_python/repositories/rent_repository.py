@@ -7,7 +7,7 @@ class RentRepository():
       'id': rent_record[0],
       'user_id': rent_record[1],
       'car_id': rent_record[2],
-      'rent_date': rent_record[3].strftime("%Y-%m-%d"),
+      'rent_date': rent_record[3].strftime('%Y-%m-%d'),
       'rent_status': rent_record[4]
     }
 
@@ -22,14 +22,18 @@ class RentRepository():
         user_id
       )
       if not user_check:
-        return {'error': 'User not found'}
-    
+        print ('error: User not found')
+        return False
+      
       account_state, is_delinquent = user_check[0]
+      
       if account_state != 'active':
-        return {'error': 'User account is not active'}
+        print('error: User account is not active')
+        return False
       
       if is_delinquent:
-        return {'error': 'User is delinquent'}
+        print('error: User is delinquent')
+        return False
       
       car_check = self.db_manager.execute_query(
           '''
@@ -40,16 +44,20 @@ class RentRepository():
           car_id
       )
       if not car_check:
-        return {'error': 'Car not found'}
+        print({'error: Car not found'})
+        return False
       
       car_state = car_check[0][0]
-      if car_state != 'available':
-        return {'error': 'Car is not available'}
       
-      self.db_manager.execute_query(
+      if car_state != 'available':
+        print('Car is not available')
+        return False
+      
+      result = self.db_manager.execute_query(
         '''
         INSERT INTO lyfter_car_rental.users_cars (user_id, car_id, rent_status)
         VALUES (%s, %s, %s)
+        RETURNING id, user_id, car_id, rent_date, rent_status
         ''',
         user_id, car_id, rent_status
       )
@@ -62,7 +70,12 @@ class RentRepository():
         ''',
         car_id
       )
-      return {'message': 'Rent created successfully'}
+      print(result)
+
+      formatted_result = self._format_rents(result[0])
+      print(formatted_result)
+     
+      return formatted_result if formatted_result else None
 
     except Exception as e:
       print("Error while inserting a rent:", e)
@@ -70,7 +83,7 @@ class RentRepository():
   def get_all(self):
     try:
       results = self.db_manager.execute_query(
-        'SELECT id, user_id, car_id, rent_date, rent_status FROM lyfter_car_rental.users_cars;'
+      'SELECT id, user_id, car_id, rent_date, rent_status FROM lyfter_car_rental.users_cars;'
         )
       formatted_results = [self._format_rents(result) for result in results] 
       return formatted_results
@@ -119,6 +132,13 @@ class RentRepository():
 
   def modify_rent_status(self, rent_status, id):
     try:
+      car_id = self.db_manager.execute_query(
+      '''
+        SELECT car_id FROM lyfter_car_rental.users_cars
+        WHERE id = %s
+      ''', id
+      )
+      print(car_id)
       results = self.db_manager.execute_query(
         '''
         UPDATE lyfter_car_rental.users_cars
@@ -127,6 +147,14 @@ class RentRepository():
         RETURNING user_id, car_id, rent_date, rent_status;
         ''',
         rent_status, id
+      )
+
+      self.db_manager.execute_query(
+        '''
+        UPDATE lyfter_car_rental.cars
+        SET state = 'available'
+        WHERE id = %s
+        ''', car_id[0]
       )
       return self._format_rents(results[0]) if results else None
     

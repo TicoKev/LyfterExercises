@@ -76,8 +76,12 @@ def get_cars():
     else:
       cars = car_repo.get_all()
 
-    if not cars:
-      return jsonify({'error': 'Unable to get the car'}), 400 
+    if cars == []:
+      return jsonify({'data': cars,
+                      'message': 'Unable to get the car, no coincidences found',}), 200 
+
+    if cars == False:
+      return jsonify({'error': 'Internal database error'}), 500 
     
     return jsonify({'data': cars}), 200
 

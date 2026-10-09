@@ -27,7 +27,9 @@ def create_rent():
 
     new_rent = rent_repo.create_rent(user, car, rent_status)
 
-    if not new_rent:
+    print(new_rent)
+
+    if not new_rent or new_rent is False:
       return jsonify({'error': 'Error while adding the new rent'}), 400
     
     return jsonify({'message': 'rent added successfully', 'rent': new_rent}), 201
@@ -47,7 +49,7 @@ def get_rents():
           return jsonify({'error': f'filter {key} is empty'}), 400
         
       if 'rent_status' in filter_items and filter_items['rent_status'] not in VALID_RENT_STATES:
-        return jsonify({'error': f'Invalid state {value}, correct states: pending, active, completed, cancelled, overdue'})
+        return jsonify({'error': f'Invalid state {value}, correct states: pending, active, completed, cancelled, overdue'}), 400
       
       if 'rent_date' in filter_items:
         rent_date = filter_items['rent_date']
@@ -64,8 +66,12 @@ def get_rents():
     else:
       rents = rent_repo.get_all()
 
-    if not rents:
-      return jsonify({'error': 'Unable to get the rent'}), 400 
+    if rents == []:
+      return jsonify({'data': rents,
+                      'message': 'Unable to get the rent, no coincidences found',}), 200 
+    
+    if rents is False:
+      return jsonify({'error': 'Internal database error'}), 500
     
     return jsonify({'data': rents}), 200
 

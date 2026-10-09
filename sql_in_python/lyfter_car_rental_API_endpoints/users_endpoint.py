@@ -17,10 +17,11 @@ def get_users():
       for key, value in filter_items.items():
         if not value:
           return jsonify({'error': f'Filter {key} is empty'}), 400
+      
       if 'account_state' in filter_items:
         filter_items['account_state'] = filter_items['account_state'].lower()
         if filter_items['account_state'] not in VALID_ACCOUNT_STATES:
-          return jsonify({'error': f'Invalid state: {filter_items['account_state']}, correct states: active, suspended or closed'})
+          return jsonify({'error': f'Invalid state: {filter_items['account_state']}, correct states: active, suspended or closed'}), 400
       
       if 'date_of_birth' in filter_items:
         try:
@@ -54,21 +55,27 @@ def get_users():
 def create_user():
   try:
     data = request.get_json()
+
+    required_fields = ["name", "username", "email", "user_password", "date_of_birth", "account_state"]
+
+    missing_fields = [field for field in  required_fields if not data.get(field)]
+
+    if missing_fields:
+      return jsonify({'error': 'All field are required', 
+                      'missing': missing_fields}), 400
+
     name = data.get('name')
     username = data.get('username')
     email = data.get('email')
     password = data.get('user_password')
-    birth_date = datetime.fromisoformat(data.get('date_of_birth'))
     account_state = data.get('account_state')
-
-    if not name or not username or not email or not password or not birth_date or not account_state:
-      return jsonify({'error': 'All fields are required'}), 400
+    if not isinstance(data.get('date_of_birth'), (date, datetime)):
+      return jsonify({'error': 'The date of birth is not a date'}), 400
+    birth_date = datetime.fromisoformat(data.get('date_of_birth'))
 
     if not all(isinstance(s, str) for s in [name, username, email, account_state]):
       return jsonify({'error': 'name, username, email and account_state must be text'}), 400
-
-    if not isinstance(birth_date, (date, datetime)):
-      return jsonify({'error': 'The date of birth is not a date'}), 400
+    
     date_of_birth = birth_date
 
     new_user = user_repo.create_user(name=name, username=username, email=email, user_password=password, date_of_birth=date_of_birth, account_state=account_state)
@@ -96,7 +103,9 @@ def modify_user(id):
         return jsonify({'error': 'The state must be text'}), 400
       
       if data['account_state'] not in VALID_ACCOUNT_STATES:
-        return jsonify({'error': 'Invalid account state, correct states: active, suspended or closed'})
+        return jsonify({'error': 'Invalid account state, correct states: active, suspended or closed'}), 400
+    else:
+      jsonify({'error': 'Missing account state field'}), 400
       
       user['account_state'] = data.get('account_state')
       user_repo.modify_account_state(user['account_state'], id)
@@ -110,7 +119,9 @@ def modify_user(id):
 
       user['is_delinquent'] = data.get('is_delinquent')
       user_repo.modify_is_delinquent(user['is_delinquent'], id)
-    
+    else:
+      jsonify({'error': 'Missing is_delinquent field'}), 400
+
     return jsonify({'message': 'User state modified successfully', 'user': user}), 200
       
   except Exception as e:
