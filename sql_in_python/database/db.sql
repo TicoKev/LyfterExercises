@@ -180,13 +180,13 @@ UPDATE cars SET state = 'available' WHERE id = 5;
 
 Update cars
 SET state = 'rented'
-WHERE id = 35
+WHERE id = 35;
 INSERT INTO users_cars (user_id, car_id, rent_status) VALUES (11, 35, 'active');
 
 --6.  
 Update cars
 SET state = 'available'
-WHERE id = 11
+WHERE id = 11;
 UPDATE users_cars
 SET rent_status = 'completed'
 WHERE id = 11;

@@ -132,13 +132,22 @@ class RentRepository():
 
   def modify_rent_status(self, rent_status, id):
     try:
+
+      RENT_STATES_MAPPING = {
+        'active': 'rented',
+        'pending' : 'rented',
+        'completed' : 'available',
+        'cancelled' : 'available',
+        'overdue' : 'disabled'
+      }
+
       car_id = self.db_manager.execute_query(
       '''
         SELECT car_id FROM lyfter_car_rental.users_cars
         WHERE id = %s
       ''', id
       )
-      print(car_id)
+      
       results = self.db_manager.execute_query(
         '''
         UPDATE lyfter_car_rental.users_cars
@@ -149,13 +158,22 @@ class RentRepository():
         rent_status, id
       )
 
-      self.db_manager.execute_query(
-        '''
-        UPDATE lyfter_car_rental.cars
-        SET state = 'available'
-        WHERE id = %s
-        ''', car_id[0]
-      )
+      if rent_status in RENT_STATES_MAPPING:
+        update_car_state = self.db_manager.execute_query(          
+          '''
+          UPDATE lyfter_car_rental.cars
+          SET state = %s
+          WHERE id = %s
+          ''', RENT_STATES_MAPPING.get(rent_status), car_id[0]
+        )
+        
+        if update_car_state == False:
+          print('Invalid state')
+          return False
+        if update_car_state is None:
+          print('Error updating the state')
+          return None
+        
       return self._format_rents(results[0]) if results else None
     
     except Exception  as e:
