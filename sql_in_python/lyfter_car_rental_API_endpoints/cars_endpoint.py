@@ -49,8 +49,8 @@ def get_cars():
       if 'id' in filter_items:
         try:
           id_value = int(filter_items['id'])
-          if id_value < 0:
-            return jsonify({'error': 'id must be a postive number'}), 400
+          if id_value <= 0:
+            return jsonify({'error': 'id must be a postive number higher than 0'}), 400
           filter_items['id'] = id_value
         except ValueError:
           return jsonify({'error': 'id must be a number'}), 400
@@ -78,7 +78,7 @@ def get_cars():
 
     if cars == []:
       return jsonify({'data': cars,
-                      'message': 'Unable to get the car, no coincidences found',}), 200 
+                      'message': 'No coincidences found',}), 200 
 
     if cars == False:
       return jsonify({'error': 'Internal database error'}), 500 

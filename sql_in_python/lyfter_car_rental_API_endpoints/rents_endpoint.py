@@ -47,6 +47,15 @@ def get_rents():
       for key, value in filter_items.items():
         if not value:
           return jsonify({'error': f'filter {key} is empty'}), 400
+      
+      if 'id' in filter_items:
+        try:
+          id_value = int(filter_items['id'])
+          if id_value <= 0:
+            return jsonify({'error': 'id must be a postive number higher than 0'}), 400
+          filter_items['id'] = id_value
+        except ValueError:
+          return jsonify({'error': 'id must be a number'}), 400
         
       if 'rent_status' in filter_items and filter_items['rent_status'] not in VALID_RENT_STATES:
         return jsonify({'error': f'Invalid state {value}, correct states: pending, active, completed, cancelled, overdue'}), 400
@@ -68,7 +77,7 @@ def get_rents():
 
     if rents == []:
       return jsonify({'data': rents,
-                      'message': 'Unable to get the rent, no coincidences found',}), 200 
+                      'message': 'No coincidences found',}), 200 
     
     if rents is False:
       return jsonify({'error': 'Internal database error'}), 500

@@ -17,11 +17,20 @@ def get_users():
       for key, value in filter_items.items():
         if not value:
           return jsonify({'error': f'Filter {key} is empty'}), 400
+
+      if 'id' in filter_items:
+        try:
+          id_value = int(filter_items['id'])
+          if id_value <= 0:
+            return jsonify({'error': 'id must be a postive number higher than 0'}), 400
+          filter_items['id'] = id_value
+        except ValueError:
+          return jsonify({'error': 'id must be a number'}), 400
       
       if 'account_state' in filter_items:
         filter_items['account_state'] = filter_items['account_state'].lower()
         if filter_items['account_state'] not in VALID_ACCOUNT_STATES:
-          return jsonify({'error': f'Invalid state: {filter_items['account_state']}, correct states: active, suspended or closed'}), 400
+          return jsonify({'error': f'Invalid state: {filter_items["account_state"]}', 'correct states': 'active, suspended or closed'}), 400
       
       if 'date_of_birth' in filter_items:
         try:
@@ -43,8 +52,12 @@ def get_users():
     else:
         users = user_repo.get_all()        
     
-    if not users:
-      return jsonify({'error': 'Unable to get the users'}), 400 
+    if users == []:
+      return jsonify({'data': users,
+                      'message': 'No coincidences found',}), 200 
+
+    if users == False:
+      return jsonify({'error': 'Internal database error'}), 500
     
     return{'data' : users}, 200
   
@@ -69,19 +82,22 @@ def create_user():
     email = data.get('email')
     password = data.get('user_password')
     account_state = data.get('account_state')
-    if not isinstance(data.get('date_of_birth'), (date, datetime)):
-      return jsonify({'error': 'The date of birth is not a date'}), 400
-    birth_date = datetime.fromisoformat(data.get('date_of_birth'))
-
+    b_day = data.get('date_of_birth')
+    
+    if b_day:
+      try:
+        birth_date = datetime.fromisoformat(data.get('date_of_birth'))
+        b_day = birth_date
+      except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Incorrect format entered, {e}', 'correct format': 'YYYY-MM-DD'}), 400
+  
     if not all(isinstance(s, str) for s in [name, username, email, account_state]):
       return jsonify({'error': 'name, username, email and account_state must be text'}), 400
     
-    date_of_birth = birth_date
-
-    new_user = user_repo.create_user(name=name, username=username, email=email, user_password=password, date_of_birth=date_of_birth, account_state=account_state)
+    new_user = user_repo.create_user(name=name, username=username, email=email, user_password=password, date_of_birth=b_day, account_state=account_state)
 
     if not new_user:
-          return jsonify({'error': 'Error while adding the new user'}), 400
+      return jsonify({'error': 'Error while adding the new user'}), 400
         
     return jsonify({'message': 'User added succesfully', 'user': new_user }), 201
 
@@ -91,38 +107,48 @@ def create_user():
 @users_bp.route('/users/<int:id>', methods=['PUT'])
 def modify_user(id):
   try:
-
     data = request.get_json()
     user = user_repo.get_by_id(id)
 
+    if not user:
+      return jsonify({'error': 'User not found'}), 404
+
     if 'account_state' in data:
-      if not data['account_state']:
+      state = data.get('account_state')
+
+      if not state:
         return jsonify({'error': 'Account state must not be empty'}), 400
-      
-      if not isinstance(data['account_state'], str):
-        return jsonify({'error': 'The state must be text'}), 400
-      
-      if data['account_state'] not in VALID_ACCOUNT_STATES:
-        return jsonify({'error': 'Invalid account state, correct states: active, suspended or closed'}), 400
-    else:
-      jsonify({'error': 'Missing account state field'}), 400
-      
-      user['account_state'] = data.get('account_state')
-      user_repo.modify_account_state(user['account_state'], id)
+      if not isinstance(state, str):
+        return jsonify({'error': 'Account state must be text'}), 400
+      if state not in VALID_ACCOUNT_STATES:
+        return jsonify({'error': 'Invalid state', 'correct states': 'active, suspended or closed'}), 400
+
+      user['account_state'] = state
+      result = user_repo.modify_account_state(state, id)
+      if result is None:
+        return jsonify({'error': 'Unable to modify user'}), 400
+      if result == False:
+        return jsonify({'error': 'Internal database error'}), 500
     
     if 'is_delinquent' in data:
-      if data['is_delinquent'] is None:
-        return jsonify({'error': 'Is delinquient must not be empty'}), 400
-      
-      if not isinstance(data['is_delinquent'], bool):
-        return jsonify({'error': 'Is delinquent must be a boolen value (True or False)'}), 400
+      delinquency = data.get('is_delinquent')
 
-      user['is_delinquent'] = data.get('is_delinquent')
-      user_repo.modify_is_delinquent(user['is_delinquent'], id)
-    else:
-      jsonify({'error': 'Missing is_delinquent field'}), 400
-
-    return jsonify({'message': 'User state modified successfully', 'user': user}), 200
+      if delinquency is None:
+        return jsonify({'error' : 'Is delinquent must not be empty'}), 400
+      if not isinstance(delinquency, bool):
+        return jsonify({'error': 'Is delinquent must be boolean (true or false)'}), 400
       
+      user['is_delinquent'] = delinquency
+      result = user_repo.modify_is_delinquent(delinquency, id)
+      if result is None:
+        return jsonify({'error': 'Unable to modify user'}), 400
+      if result == False:
+        return jsonify({'error': 'Internal database error'}), 500
+
+    if 'account_state' not in data and 'is_delinquent' not in data:
+      return jsonify({'error': 'Missing account_state and/or is_delinquent field'}), 400
+
+    return jsonify({'message': 'User modified successfully', 'user': user}), 200
+        
   except Exception as e:
-    return jsonify({'error': f'Unexpected error {e}'}), 500
+    return jsonify({'error': f'Unexpected error ocurred, {e}'}), 500
