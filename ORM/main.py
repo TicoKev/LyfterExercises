@@ -1,5 +1,4 @@
-from sqlalchemy import select
-from database import engine
+from database import engine, check_connection
 from models.base import Base
 from models.user import User
 from models.car import Car
@@ -10,6 +9,10 @@ from managers.address_manager import AddressManager
 
 
 def main():
+  connection = check_connection()
+  if connection is False:
+    raise SystemExit('An error occurred')
+   
   Base.metadata.create_all(engine)
   
   user = UserManager()
